@@ -1,0 +1,83 @@
+.events-page {
+    color: white;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+.events-container {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+}
+
+.no-events {
+    text-align: center;
+    padding: 3rem;
+    font-size: 1.2rem;
+}
+
+.attendance-tracker {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.attendance-tracker h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+}
+
+.tracker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.tracker-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.tracker-card h3 {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.progress-container {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    height: 24px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+.tracker-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}

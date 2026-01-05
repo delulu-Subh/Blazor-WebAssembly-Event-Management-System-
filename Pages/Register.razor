@@ -1,0 +1,195 @@
+@page "/register"
+@using EventManagementSystem.Models
+@using EventManagementSystem.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject EventService EventService
+@inject RegistrationService RegistrationService
+@inject NavigationManager Navigation
+
+<PageTitle>Register - Event Management System</PageTitle>
+
+<div class="register-page">
+    <div class="page-header">
+        <h1>Event Registration</h1>
+        <p>Fill out the form below to register for an event</p>
+    </div>
+
+    <div class="form-container">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-error">
+                ❌ @errorMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success">
+                ✅ @successMessage
+            </div>
+        }
+
+        <EditForm Model="@registration" OnValidSubmit="@HandleValidSubmit" class="registration-form">
+            <DataAnnotationsValidator />
+            
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <InputText id="name" @bind-Value="registration.Name" class="form-control" placeholder="Enter your full name" />
+                <ValidationMessage For="@(() => registration.Name)" class="validation-message" />
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <InputText id="email" type="email" @bind-Value="registration.Email" class="form-control" placeholder="your.email@example.com" />
+                <ValidationMessage For="@(() => registration.Email)" class="validation-message" />
+            </div>
+
+            <div class="form-group">
+                <label for="event">Select Event</label>
+                <InputSelect id="event" @bind-Value="registration.EventId" class="form-control">
+                    <option value="0">-- Choose an event --</option>
+                    @foreach (var evt in availableEvents)
+                    {
+                        <option value="@evt.Id">@evt.Name (@evt.Date.ToString("MMM dd, yyyy")) - @evt.AvailableSeats seats left</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => registration.EventId)" class="validation-message" />
+            </div>
+
+            @if (selectedEvent != null)
+            {
+                <div class="event-preview">
+                    <h3>Selected Event Details</h3>
+                    <p><strong>Event:</strong> @selectedEvent.Name</p>
+                    <p><strong>Date:</strong> @selectedEvent.Date.ToString("MMMM dd, yyyy")</p>
+                    <p><strong>Location:</strong> @selectedEvent.Location</p>
+                    <p><strong>Available Seats:</strong> @selectedEvent.AvailableSeats</p>
+                </div>
+            }
+
+            <div class="form-actions">
+                <button type="submit" class="btn-submit" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span>Registering...</span>
+                    }
+                    else
+                    {
+                        <span>Register</span>
+                    }
+                </button>
+                <button type="button" class="btn-cancel" @onclick="ResetForm">Clear Form</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Registration registration = new();
+    private List<Event> availableEvents = new();
+    private Event? selectedEvent;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool isSubmitting = false;
+
+    [SupplyParameterFromQuery(Name = "eventId")]
+    public int? PreSelectedEventId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        LoadAvailableEvents();
+        
+        // Pre-select event if coming from Events page
+        if (PreSelectedEventId.HasValue)
+        {
+            registration.EventId = PreSelectedEventId.Value;
+            UpdateSelectedEvent();
+        }
+    }
+
+    private void LoadAvailableEvents()
+    {
+        // Only show events with available seats
+        availableEvents = EventService.GetAllEvents()
+            .Where(e => e.AvailableSeats > 0)
+            .OrderBy(e => e.Date)
+            .ToList();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateSelectedEvent();
+    }
+
+    private void UpdateSelectedEvent()
+    {
+        selectedEvent = registration.EventId > 0 
+            ? EventService.GetEventById(registration.EventId) 
+            : null;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Prevent double submission
+        if (isSubmitting) return;
+        
+        isSubmitting = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Validate event selection
+            if (registration.EventId <= 0)
+            {
+                errorMessage = "Please select an event.";
+                return;
+            }
+
+            // Check if user is already registered
+            if (RegistrationService.IsUserRegistered(registration.Email, registration.EventId))
+            {
+                errorMessage = "You are already registered for this event.";
+                return;
+            }
+
+            // Attempt registration
+            bool success = RegistrationService.RegisterForEvent(registration);
+
+            if (success)
+            {
+                successMessage = $"Successfully registered for {selectedEvent?.Name}! You will receive a confirmation email shortly.";
+                
+                // Reset form after short delay
+                await Task.Delay(2000);
+                ResetForm();
+                
+                // Navigate to events page
+                Navigation.NavigateTo("/events");
+            }
+            else
+            {
+                errorMessage = "Registration failed. The event may be full or no longer available.";
+                LoadAvailableEvents(); // Refresh available events
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred during registration: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetForm()
+    {
+        registration = new Registration();
+        selectedEvent = null;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,98 @@
+@using EventManagementSystem.Models
+@implements IDisposable
+
+<div class="event-card">
+    <div class="event-header">
+        <h3>@Event.Name</h3>
+        <span class="event-date">@Event.Date.ToString("MMM dd, yyyy")</span>
+    </div>
+    
+    <div class="event-body">
+        <div class="event-info">
+            <span class="info-label">📍 Location:</span>
+            <span class="info-value">@Event.Location</span>
+        </div>
+        
+        <div class="event-info">
+            <span class="info-label">💺 Available Seats:</span>
+            <span class="info-value seats-available">@Event.AvailableSeats / @Event.TotalSeats</span>
+        </div>
+        
+        <div class="event-info">
+            <span class="info-label">👥 Attendees:</span>
+            <span class="info-value">@Event.AttendeeCount</span>
+        </div>
+    </div>
+    
+    <div class="event-footer">
+        @if (Event.AvailableSeats > 0)
+        {
+            <button class="btn-register" @onclick="OnRegisterClicked">Register Now</button>
+        }
+        else
+        {
+            <button class="btn-full" disabled>Event Full</button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Event Event { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<int> OnRegister { get; set; }
+
+    private int previousEventId;
+    private int previousAvailableSeats;
+
+    // Performance optimization: Only re-render if relevant data changes
+    protected override bool ShouldRender()
+    {
+        // Check if the data that affects rendering has actually changed
+        bool hasChanged = previousEventId != Event.Id || 
+                         previousAvailableSeats != Event.AvailableSeats;
+        
+        if (hasChanged)
+        {
+            previousEventId = Event.Id;
+            previousAvailableSeats = Event.AvailableSeats;
+        }
+        
+        return hasChanged;
+    }
+
+    private async Task OnRegisterClicked()
+    {
+        await OnRegister.InvokeAsync(Event.Id);
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+}
+
+/* 
+PERFORMANCE OPTIMIZATION EXPLANATION:
+
+1. ShouldRender() Override:
+   - By default, Blazor re-renders components whenever StateHasChanged() is called
+   - We override ShouldRender() to only re-render when data actually changes
+   - This prevents unnecessary DOM updates and improves performance
+
+2. Tracking Previous Values:
+   - We store previous values of Event.Id and Event.AvailableSeats
+   - On each render check, we compare current values with previous
+   - Only return true (allow render) if values have changed
+
+3. Benefits:
+   - Reduces unnecessary re-renders in lists of events
+   - Improves performance when many EventCard instances are displayed
+   - Especially beneficial when events update frequently
+
+4. Trade-offs:
+   - Slightly more complex code
+   - Need to identify which properties affect rendering
+   - Good for components rendered many times (like in lists)
+*/

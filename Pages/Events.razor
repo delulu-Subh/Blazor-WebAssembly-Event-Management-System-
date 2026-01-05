@@ -1,0 +1,91 @@
+@page "/events"
+@using EventManagementSystem.Models
+@using EventManagementSystem.Services
+@using EventManagementSystem.Components
+@inject EventService EventService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>Events - Event Management System</PageTitle>
+
+<div class="events-page">
+    <div class="page-header">
+        <h1>Upcoming Events</h1>
+        <p>Browse and register for exciting events</p>
+    </div>
+
+    <div class="events-container">
+        @if (events == null || !events.Any())
+        {
+            <div class="no-events">
+                <p>No events available at the moment. Check back soon!</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var evt in events.OrderBy(e => e.Date))
+            {
+                <EventCard Event="@evt" OnRegister="HandleRegister" />
+            }
+        }
+    </div>
+
+    <div class="attendance-tracker">
+        <h2>📊 Attendance Tracker</h2>
+        <div class="tracker-grid">
+            @foreach (var evt in events.OrderBy(e => e.Date))
+            {
+                <div class="tracker-card">
+                    <h3>@evt.Name</h3>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: @CalculatePercentage(evt)%"></div>
+                    </div>
+                    <div class="tracker-stats">
+                        <span>@evt.AttendeeCount attendees</span>
+                        <span>@evt.AvailableSeats seats left</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Event> events = new();
+
+    protected override void OnInitialized()
+    {
+        LoadEvents();
+        
+        // Subscribe to changes for real-time updates
+        EventService.OnEventsChanged += OnEventsChanged;
+    }
+
+    private void LoadEvents()
+    {
+        events = EventService.GetAllEvents();
+    }
+
+    private void OnEventsChanged()
+    {
+        LoadEvents();
+        StateHasChanged(); // Force component to re-render
+    }
+
+    private void HandleRegister(int eventId)
+    {
+        // Navigate to registration page with selected event
+        Navigation.NavigateTo($"/register?eventId={eventId}");
+    }
+
+    private double CalculatePercentage(Event evt)
+    {
+        if (evt.TotalSeats == 0) return 0;
+        return ((double)evt.AttendeeCount / evt.TotalSeats) * 100;
+    }
+
+    public void Dispose()
+    {
+        EventService.OnEventsChanged -= OnEventsChanged;
+    }
+}

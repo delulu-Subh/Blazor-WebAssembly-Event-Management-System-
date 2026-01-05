@@ -1,0 +1,92 @@
+@page "/"
+@using EventManagementSystem.Services
+@inject EventService EventService
+@inject NavigationManager Navigation
+
+<PageTitle>Home - Event Management System</PageTitle>
+
+<div class="home-container">
+    <div class="hero-section">
+        <h1>Welcome to Event Management System</h1>
+        <p class="subtitle">Discover and register for exciting events happening around you</p>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">@totalEvents</div>
+                <div class="stat-label">Total Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">@availableSeats</div>
+                <div class="stat-label">Available Seats</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">@totalAttendees</div>
+                <div class="stat-label">Total Attendees</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cta-section">
+        <h2>Ready to join an event?</h2>
+        <button class="btn-primary" @onclick="NavigateToEvents">Browse Events</button>
+        <button class="btn-secondary" @onclick="NavigateToRegister">Register Now</button>
+    </div>
+
+    <div class="features-section">
+        <h2>Why Choose Us?</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Easy Registration</h3>
+                <p>Simple and quick registration process for all events</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h3>Event Calendar</h3>
+                <p>Keep track of all upcoming events in one place</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✉️</div>
+                <h3>Instant Updates</h3>
+                <p>Get real-time updates on event availability</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int totalEvents;
+    private int availableSeats;
+    private int totalAttendees;
+
+    protected override void OnInitialized()
+    {
+        CalculateStatistics();
+        
+        // Subscribe to event changes to update statistics
+        EventService.OnEventsChanged += OnEventsChanged;
+    }
+
+    private void CalculateStatistics()
+    {
+        var events = EventService.GetAllEvents();
+        totalEvents = events.Count;
+        availableSeats = events.Sum(e => e.AvailableSeats);
+        totalAttendees = events.Sum(e => e.AttendeeCount);
+    }
+
+    private void OnEventsChanged()
+    {
+        CalculateStatistics();
+        StateHasChanged(); // Force UI update
+    }
+
+    private void NavigateToEvents() => Navigation.NavigateTo("/events");
+    private void NavigateToRegister() => Navigation.NavigateTo("/register");
+
+    // Cleanup: Unsubscribe from events to prevent memory leaks
+    public void Dispose()
+    {
+        EventService.OnEventsChanged -= OnEventsChanged;
+    }
+}
